@@ -1,130 +1,153 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.ES30;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace VoxelGame.Visual
 {
     public class Shader : IDisposable
     {
-        public Int32 programID;
-        private Int32 vertexID;
-        private Int32 fragmentID;
-        private Int32 geometryID;
-        private Int32 computeID;
+        public int ProgramID { get; private set; }
+        private int vertexID;
+        private int fragmentID;
+        private int geometryID;
+        private int computeID;
+        private int VAO;
 
         private PrimitiveType drawingMode = PrimitiveType.Triangles;
 
-        Dictionary<String, (Int32 Location, Int32 Buf)> attributeList = new Dictionary<String, (Int32 Location, Int32 Buf)>();
-        Dictionary<String, (Int32 Location, Int32 Buf)> uniformList = new Dictionary<String, (Int32 Location, Int32 Buf)>();
+        private readonly Dictionary<string, (int Location, int Buf)> attributeList = new();
+        private readonly Dictionary<string, (int Location, int Buf)> uniformList = new();
 
         public void Dispose()
         {
-            GL.DeleteProgram(programID);
+            GL.DeleteProgram(ProgramID);
+            GL.DeleteVertexArray(VAO);
         }
-        public void InitProgram(String vertexPath, String fragmentPath, String? geometryPath = null, String? computePath = null)
-        {
-            programID = GL.CreateProgram();
 
-            ShaderUtils.LoadShader(vertexPath, ShaderType.VertexShader, programID, out vertexID);
-            ShaderUtils.LoadShader(fragmentPath, ShaderType.FragmentShader, programID, out fragmentID);
+        public void InitProgram(string vertexPath, string fragmentPath, string? geometryPath = null, string? computePath = null)
+        {
+            ProgramID = GL.CreateProgram();
+
+            ShaderUtils.LoadShader(vertexPath, ShaderType.VertexShader, ProgramID, out vertexID);
+            ShaderUtils.LoadShader(fragmentPath, ShaderType.FragmentShader, ProgramID, out fragmentID);
             if (geometryPath != null)
-                ShaderUtils.LoadShader(geometryPath, ShaderType.GeometryShader, programID, out geometryID);
+                ShaderUtils.LoadShader(geometryPath, ShaderType.GeometryShader, ProgramID, out geometryID);
             if (computePath != null)
-                ShaderUtils.LoadShader(computePath, ShaderType.ComputeShader, programID, out computeID);
-            GL.LinkProgram(programID);
-            Console.WriteLine(GL.GetProgramInfoLog(programID));
+                ShaderUtils.LoadShader(computePath, ShaderType.ComputeShader, ProgramID, out computeID);
+
+            GL.LinkProgram(ProgramID);
+            GL.GetProgram(ProgramID, GetProgramParameterName.LinkStatus, out int success);
+            if (success == 0)
+            {
+                throw new Exception($"Shader linking failed: {GL.GetProgramInfoLog(ProgramID)}");
+            }
+
+            GL.DeleteShader(vertexID);
+            GL.DeleteShader(fragmentID);
+            if (geometryID != 0) GL.DeleteShader(geometryID);
+            if (computeID != 0) GL.DeleteShader(computeID);
+
+            VAO = GL.GenVertexArray();
+            GL.BindVertexArray(VAO);
         }
 
-        public void InitUniform(String uniformName, Int32 n = 1)
+        public void InitUniform(string uniformName)
         {
-            Int32 LocationID = GL.GetUniformLocation(programID, uniformName);
-            if (LocationID == -1)
-                throw new Exception($"Could not get Uniform {uniformName}");
-            GL.GenBuffers(n, out Int32 ID);
-            uniformList[uniformName] = (LocationID, ID);
+            int locationID = GL.GetUniformLocation(ProgramID, uniformName);
+            if (locationID == -1)
+                throw new Exception($"Could not get uniform {uniformName}");
+            uniformList[uniformName] = (locationID, 0);
         }
-        public void InitAttribute(String attributeName, Int32 n = 1)
+
+        public void InitAttribute(string attributeName)
         {
-            Int32 LocationID = GL.GetAttribLocation(programID, attributeName);
-            if (LocationID == -1)
-                throw new Exception($"Could not get Attribute {attributeName}");
-            GL.GenBuffers(n, out Int32 ID);
-            attributeList[attributeName] = (LocationID, ID);
+            int locationID = GL.GetAttribLocation(ProgramID, attributeName);
+            if (locationID == -1)
+                throw new Exception($"Could not get attribute {attributeName}");
+
+            GL.GenBuffers(1, out int bufferID);
+            attributeList[attributeName] = (locationID, bufferID);
         }
-        public void SetUniform<T>(String uniformName, T[] data, Int32 index) where T : struct
+
+        public void SetUniform<T>(string uniformName, T value, int? index = null) where T : notnull
         {
             if (!uniformList.TryGetValue(uniformName, out var uniformData))
             {
-                throw new Exception($"No uniform was found for {uniformName}.");
+                throw new Exception($"No uniform found for {uniformName}.");
             }
-            Type T_TYPE = typeof(T);
-            if (T_TYPE == typeof(Vector2))
-                GL.Uniform2(uniformData.Location, ref Unsafe.As<T, Vector2>(ref data[index]));
-            else if (T_TYPE == typeof(Vector3))
-                GL.Uniform3(uniformData.Location, ref Unsafe.As<T, Vector3>(ref data[index]));
-            else if (T_TYPE == typeof(Vector4))
-                GL.Uniform4(uniformData.Location, ref Unsafe.As<T, Vector4>(ref data[index]));
-            else if (T_TYPE == typeof(Matrix2))
-                GL.UniformMatrix2(uniformData.Location, false, ref Unsafe.As<T, Matrix2>(ref data[index]));
-            else if (T_TYPE == typeof(Matrix3))
-                GL.UniformMatrix3(uniformData.Location, false, ref Unsafe.As<T, Matrix3>(ref data[index]));
-            else if (T_TYPE == typeof(Matrix4))
-                GL.UniformMatrix4(uniformData.Location, false, ref Unsafe.As<T, Matrix4>(ref data[index]));
+
+            if (typeof(T) == typeof(Vector2))
+            {
+                GL.UseProgram(ProgramID);
+                GL.Uniform2(uniformData.Location, ref Unsafe.As<T, Vector2>(ref value));
+            }
+            else if (typeof(T) == typeof(Vector3))
+            {
+                GL.UseProgram(ProgramID);
+                GL.Uniform3(uniformData.Location, ref Unsafe.As<T, Vector3>(ref value));
+            }
+            else if (typeof(T) == typeof(Vector4))
+            {
+                GL.UseProgram(ProgramID);
+                GL.Uniform4(uniformData.Location, ref Unsafe.As<T, Vector4>(ref value));
+            }
+            else if (typeof(T) == typeof(Matrix4))
+            {
+                GL.UseProgram(ProgramID);
+                GL.UniformMatrix4(uniformData.Location, false, ref Unsafe.As<T, Matrix4>(ref value));
+            }
+            else if (typeof(T) == typeof(Matrix3))
+            {
+                GL.UseProgram(ProgramID);
+                GL.UniformMatrix3(uniformData.Location, false, ref Unsafe.As<T, Matrix3>(ref value));
+            }
+            else if (typeof(T) == typeof(Matrix2))
+            {
+                GL.UseProgram(ProgramID);
+                GL.UniformMatrix2(uniformData.Location, false, ref Unsafe.As<T, Matrix2>(ref value));
+            }
             else
-                throw new Exception($"No uniform was found for {uniformName}, or the type assigned ({typeof(T)}) was incompatible.");
+                throw new Exception($"Unsupported uniform type {typeof(T)} for {uniformName}");
         }
 
-        
-        public void SetBufferData<T>(String attributeName, T[] data, Int32 size, System.Boolean normalized = false, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferTarget target = BufferTarget.ArrayBuffer, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct
+        public void SetBufferData<T>(string attributeName, T[] data, int size, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct
         {
             if (!attributeList.TryGetValue(attributeName, out var attributeData))
             {
-                throw new Exception($"No attribute was found for {attributeName}.");
+                throw new Exception($"No attribute found for {attributeName}.");
             }
-            int sizeInBytes = Marshal.SizeOf<T>();
-            int totalSize = sizeInBytes * data.Length;
-            GL.BindBuffer(target, attributeData.Buf);
-            GL.BufferData<T>(target, totalSize, data , hint);
-            GL.VertexAttribPointer(attributeData.Location, size, type, normalized, 0, 0);
-        }
 
-        public void EnableVertexAttribArray(String attributeName)
-        {
-            if (!attributeList.TryGetValue(attributeName, out var attributeData))
-            {
-                throw new Exception($"No attribute was found for {attributeName}.");
-            }
+            GL.BindBuffer(BufferTarget.ArrayBuffer, attributeData.Buf);
+            GL.BufferData(BufferTarget.ArrayBuffer, Marshal.SizeOf<T>() * data.Length, data, hint);
+            GL.VertexAttribPointer(attributeData.Location, size, type, false, 0, 0);
             GL.EnableVertexAttribArray(attributeData.Location);
         }
-        public void DisableVertexAttribArray(String attributeName)
-        {
-            if (!attributeList.TryGetValue(attributeName, out var attributeData))
-            {
-                throw new Exception($"No attribute was found for {attributeName}.");
-            }
-            GL.DisableVertexAttribArray(attributeData.Location);
-        }
 
-        public void DrawArrays()
+        public void DrawArrays(int vertexCount)
         {
-            GL.DrawArrays(drawingMode, 0, 3);
+            GL.UseProgram(ProgramID);
+            GL.BindVertexArray(VAO);
+            GL.DrawArrays(drawingMode, 0, vertexCount);
         }
-
-        
     }
-    public class ShaderUtils
+
+    public static class ShaderUtils
     {
-        public static void LoadShader(String filepath, ShaderType type, Int32 program, out Int32 address)
+        public static void LoadShader(string filepath, ShaderType type, int program, out int shaderID)
         {
-            address = GL.CreateShader(type);
-            using (StreamReader sr = new StreamReader(Path.Join("Assets", "Shaders", filepath)))
+            shaderID = GL.CreateShader(type);
+            string shaderCode = File.ReadAllText(Path.Combine("Assets", "Shaders", filepath));
+            GL.ShaderSource(shaderID, shaderCode);
+            GL.CompileShader(shaderID);
+
+            GL.GetShader(shaderID, ShaderParameter.CompileStatus, out int success);
+            if (success == 0)
             {
-                GL.ShaderSource(address, sr.ReadToEnd());
+                throw new Exception($"Shader compilation failed ({type}): {GL.GetShaderInfoLog(shaderID)}");
             }
-            GL.CompileShader(address);
-            GL.AttachShader(program, address);
-            Console.WriteLine(GL.GetShaderInfoLog(address));
+
+            GL.AttachShader(program, shaderID);
         }
     }
 }

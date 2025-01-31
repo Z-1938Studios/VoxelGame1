@@ -36,12 +36,27 @@ namespace VoxelGame
         Matrix4 projection;
 
         Visual.Shader testShader = new();
+
+        Vector3[] vertdata = new Vector3[] { new Vector3(-0.8f, -0.8f, 0f),
+                new Vector3( 0.8f, -0.8f, 0f),
+                new Vector3( 0f,  0.8f, 0f)};
+        Vector3[] coldata = new Vector3[] { new Vector3(1f, 0f, 0f),
+                new Vector3( 0f, 0f, 1f),
+                new Vector3( 0f,  1f, 0f)};
+        Matrix4 mviewdata = Matrix4.Identity;
         protected override void OnLoad()
         {
             base.OnLoad();
+
             testShader.InitProgram("test.vert", "test.frag");
-            testShader.InitAttribute("test");
-            testShader.SetBufferData<float>("test", [0f, 0f, 0f], 3);
+            testShader.InitAttribute("vPosition");
+            testShader.SetBufferData<Vector3>("vPosition", vertdata, 3);
+            testShader.InitAttribute("vColor");
+            testShader.SetBufferData<Vector3>("vColor", coldata, 3);
+            testShader.InitUniform("modelView");
+            testShader.SetUniform<Matrix4>("modelView", mviewdata);
+
+            GL.Enable(EnableCap.DepthTest | EnableCap.CullFace | EnableCap.StencilTest);
 
             GL.ClearColor(0, 0, 0, 1);
         }
@@ -50,10 +65,13 @@ namespace VoxelGame
         {
             base.OnRenderFrame(args);
 
+            //GL.Viewport(0, 0, width, height);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            testShader.DrawArrays();
+            testShader.DrawArrays(vertdata.Length);
+            //Console.WriteLine(GL.GetError());
 
+            GL.Flush();
             SwapBuffers();
         }
 
