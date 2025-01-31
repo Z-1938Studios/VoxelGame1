@@ -52,7 +52,7 @@ namespace VoxelGame.Visual
             GL.GenBuffers(n, out Int32 ID);
             attributeList[attributeName] = (LocationID, ID);
         }
-        public void SetUniform<T>(String uniformName, T[] data, Int32 index)
+        public void SetUniform<T>(String uniformName, T[] data, Int32 index) where T : struct
         {
             if (!uniformList.TryGetValue(uniformName, out var uniformData))
             {
