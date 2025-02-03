@@ -56,7 +56,7 @@ namespace VoxelGame.Visual
         {
             int locationID = GL.GetUniformLocation(ProgramID, uniformName);
             if (locationID == -1)
-                throw new Exception($"Could not get uniform {uniformName}");
+                throw new Exception($"Could not get uniform {uniformName}\n\tError: {GL.GetError()}");
             uniformList[uniformName] = (locationID, 0);
         }
 
@@ -65,7 +65,6 @@ namespace VoxelGame.Visual
             int locationID = GL.GetAttribLocation(ProgramID, attributeName);
             if (locationID == -1)
                 throw new Exception($"Could not get attribute {attributeName}");
-
             GL.GenBuffers(1, out int bufferID);
             attributeList[attributeName] = (locationID, bufferID);
         }
@@ -79,36 +78,51 @@ namespace VoxelGame.Visual
 
             if (typeof(T) == typeof(Vector2))
             {
-                GL.UseProgram(ProgramID);
+                Bind();
                 GL.Uniform2(uniformData.Location, ref Unsafe.As<T, Vector2>(ref value));
             }
             else if (typeof(T) == typeof(Vector3))
             {
-                GL.UseProgram(ProgramID);
+                Bind();
                 GL.Uniform3(uniformData.Location, ref Unsafe.As<T, Vector3>(ref value));
             }
             else if (typeof(T) == typeof(Vector4))
             {
-                GL.UseProgram(ProgramID);
+                Bind();
                 GL.Uniform4(uniformData.Location, ref Unsafe.As<T, Vector4>(ref value));
             }
             else if (typeof(T) == typeof(Matrix4))
             {
-                GL.UseProgram(ProgramID);
-                GL.UniformMatrix4(uniformData.Location, false, ref Unsafe.As<T, Matrix4>(ref value));
+                Bind();
+                GL.UniformMatrix4(uniformData.Location, true, ref Unsafe.As<T, Matrix4>(ref value));
             }
             else if (typeof(T) == typeof(Matrix3))
             {
-                GL.UseProgram(ProgramID);
-                GL.UniformMatrix3(uniformData.Location, false, ref Unsafe.As<T, Matrix3>(ref value));
+                Bind();
+                GL.UniformMatrix3(uniformData.Location, true, ref Unsafe.As<T, Matrix3>(ref value));
             }
             else if (typeof(T) == typeof(Matrix2))
             {
-                GL.UseProgram(ProgramID);
-                GL.UniformMatrix2(uniformData.Location, false, ref Unsafe.As<T, Matrix2>(ref value));
+                Bind();
+                GL.UniformMatrix2(uniformData.Location, true, ref Unsafe.As<T, Matrix2>(ref value));
             }
             else
                 throw new Exception($"Unsupported uniform type {typeof(T)} for {uniformName}");
+        }
+
+        public void Bind()
+        {
+            GL.UseProgram(ProgramID);
+        }
+
+        public void Unbind()
+        {
+            GL.UseProgram(0);
+        }
+
+        public void SetDrawingMode(PrimitiveType mode)
+        {
+            drawingMode = mode;
         }
 
         public void SetBufferData<T>(string attributeName, T[] data, int size, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct
