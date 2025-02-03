@@ -5,7 +5,9 @@ namespace VoxelGame.World
     public class World
     {
         private static Vector3i PregenerateSize = (3, 3, 3);
-        public static Vector3i ChunkSize = (3, 3, 3);
+        Vector3i worldPregenPositiveBound = (PregenerateSize - (1, 1, 1)) / 2;
+        Vector3i worldPregenNegativeBound = ((PregenerateSize - (1, 1, 1)) / 2) * -1;
+        public static Vector3i ChunkSize = (32, 32, 32);
 
         public Dictionary<Vector3i, Chunk> Chunks = new();
 
@@ -22,8 +24,6 @@ namespace VoxelGame.World
 
         public void Pregenerate()
         {
-            Vector3i worldPregenPositiveBound = (PregenerateSize - (1, 1, 1)) / 2;
-            Vector3i worldPregenNegativeBound = worldPregenPositiveBound * -1;
             Console.WriteLine($"World Pregeneration Bounds = {worldPregenNegativeBound} - {worldPregenPositiveBound}");
             for (int Y = worldPregenNegativeBound.Y; Y <= worldPregenPositiveBound.Y; Y++)
             {
@@ -35,6 +35,7 @@ namespace VoxelGame.World
                     }
                 }
             }
+            Console.WriteLine($"Chunks pregenerated : {Chunks.Values.Count}");
         }
 
         public World()
@@ -43,7 +44,7 @@ namespace VoxelGame.World
         }
     }
 
-    public class Chunk
+    public class Chunk : IDisposable
     {
         public Block[,,] Blocks { get; private set; }
         public Vector3 Position { get; private set; }
@@ -63,6 +64,17 @@ namespace VoxelGame.World
                     }
                 }
             }
+        }
+
+        public Vector3i WorldToLocal(Vector3 worldPos)
+        {
+            Vector3 local = worldPos - (Position - (World.ChunkSize / 2));
+            return new Vector3i((int)local.X, (int)local.Y, (int)local.Z);
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 

@@ -38,6 +38,7 @@ namespace VoxelGame
 
             worldGenerationThread.Start();
             camera.SetProjection(45.0f, (float)width / height);
+            camera.CameraPositionChanged += (o, e) => Console.WriteLine($"New Camera Position: {e.Position}");
 
             testShader.InitProgram("test.vert", "test.frag");
 
@@ -72,10 +73,10 @@ namespace VoxelGame
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            testShader.Bind();
+            //testShader.Bind();
             testShader.SetUniform<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.DrawArrays(vertdata.Length);
-            testShader.Unbind();
+            //testShader.Unbind();
 
             GL.Flush();
             SwapBuffers();
