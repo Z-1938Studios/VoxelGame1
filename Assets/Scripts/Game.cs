@@ -14,7 +14,21 @@ namespace VoxelGame
         Visual.Shader testShader = new();
         Visual.Camera camera = new();
 
-        Vector3[] vertdata = World.Meshing.BlockFaces.FORWARD;
+        Vector3[] vertdata = {
+            (1,1,1),
+            (1,-1,1),
+            (-1,-1,1),
+            (1,1,1),
+            (-1,1,1),
+            (-1,-1,1),
+            
+            (1,1,-1),
+            (-1,1,-1),
+            (-1,-1,-1),
+            (1,1,-1),
+            (1,-1,-1),
+            (-1,-1,-1)
+        };
         Vector3[] coldata = new Vector3[] {
             new Vector3(1f, 0f, 0f),
             new Vector3( 0f, 0f, 1f),
@@ -38,7 +52,6 @@ namespace VoxelGame
 
             worldGenerationThread.Start();
             camera.SetProjection(45.0f, (float)width / height);
-            camera.CameraPositionChanged += (o, e) => Console.WriteLine($"New Camera Position: {e.Position}");
 
             testShader.InitProgram("test.vert", "test.frag");
 
