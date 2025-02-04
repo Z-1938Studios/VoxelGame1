@@ -9,26 +9,8 @@ namespace VoxelGame
     public class Game(int width, int height, string title, GameWindowSettings gameWindowSettings) : GameWindow(gameWindowSettings, new NativeWindowSettings() { ClientSize = (width, height), Title = title, TransparentFramebuffer = true })
     {
         bool firstMove = true;
-        Matrix4 projection;
-
         Visual.Shader testShader = new();
         Visual.Camera camera = new();
-
-        Vector3[] vertdata = {
-            (1,1,1),
-            (1,-1,1),
-            (-1,-1,1),
-            (1,1,1),
-            (-1,1,1),
-            (-1,-1,1),
-
-            (1,1,-1),
-            (-1,1,-1),
-            (-1,-1,-1),
-            (1,1,-1),
-            (1,-1,-1),
-            (-1,-1,-1)
-        };
         Vector3[] coldata = new Vector3[] {
             new Vector3(1f, 0f, 0f),
             new Vector3( 0f, 0f, 1f),
@@ -37,7 +19,7 @@ namespace VoxelGame
             new Vector3( 0f, 1f, 1f),
             new Vector3( 1f,  1f, 0f)
         };
-        Matrix4 mviewdata = Matrix4.Identity;
+        Matrix4[] mviewdata = [Matrix4.Identity];
 
         static World.World world = new();
 
@@ -66,15 +48,16 @@ namespace VoxelGame
 
             testShader.InitAttribute("vPosition");
             testShader.InitAttribute("vColor");
-            testShader.SetBufferData<Vector3, float>("vPosition", [.. vdata], 3, stride: 3);
-            testShader.SetBufferData<Vector3, float>("vColor", coldata, 3, stride: 3);
+            testShader.BufferData<Vector3, float>("vPosition", [.. vdata], 3, stride: 3);
+            testShader.BufferData<Vector3, float>("vColor", coldata, 3, stride: 3);
 
             testShader.InitUniform("modelView");
             testShader.InitUniform("cameraView");
             testShader.InitUniform("cameraProjection");
-            testShader.SetUniform<Matrix4>("modelView", mviewdata);
-            testShader.SetUniform<Matrix4>("cameraView", camera.GetViewMatrix());
-            testShader.SetUniform<Matrix4>("cameraProjection", camera.GetProjectionMatrix());
+            testShader.Bind();
+            testShader.SetUniformT<Matrix4>("modelView", mviewdata[0]);
+            testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
+            testShader.SetUniformT<Matrix4>("cameraProjection", camera.GetProjectionMatrix());
 
             GL.PointSize(5.0f);
             GL.LineWidth(5.0f);
@@ -98,7 +81,8 @@ namespace VoxelGame
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //testShader.Bind();
-            testShader.SetUniform<Matrix4>("cameraView", camera.GetViewMatrix());
+            testShader.Bind();
+            testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.DrawArrays(vdata.Count);
             //testShader.Unbind();
 

@@ -6,7 +6,7 @@ namespace VoxelGame.World
     {
         private static Vector3i PregenerateSize = (3, 3, 3);
         Vector3i worldPregenPositiveBound = (PregenerateSize - (1, 1, 1)) / 2;
-        Vector3i worldPregenNegativeBound = ((PregenerateSize - (1, 1, 1)) / 2) * -1;
+        Vector3i worldPregenNegativeBound = (PregenerateSize - (1, 1, 1)) / 2 * -1;
         public static Vector3i ChunkSize = (32, 32, 32);
 
         public Dictionary<Vector3i, Chunk> Chunks = new();

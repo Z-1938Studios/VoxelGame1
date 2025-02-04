@@ -31,10 +31,8 @@ namespace VoxelGame.Visual
 
             ShaderUtils.LoadShader(vertexPath, ShaderType.VertexShader, ProgramID, out vertexID);
             ShaderUtils.LoadShader(fragmentPath, ShaderType.FragmentShader, ProgramID, out fragmentID);
-            if (geometryPath != null)
-                ShaderUtils.LoadShader(geometryPath, ShaderType.GeometryShader, ProgramID, out geometryID);
-            if (computePath != null)
-                ShaderUtils.LoadShader(computePath, ShaderType.ComputeShader, ProgramID, out computeID);
+            if (geometryPath != null) ShaderUtils.LoadShader(geometryPath, ShaderType.GeometryShader, ProgramID, out geometryID);
+            if (computePath != null) ShaderUtils.LoadShader(computePath, ShaderType.ComputeShader, ProgramID, out computeID);
 
             GL.LinkProgram(ProgramID);
             GL.GetProgram(ProgramID, GetProgramParameterName.LinkStatus, out int success);
@@ -63,12 +61,11 @@ namespace VoxelGame.Visual
         public void InitAttribute(string attributeName)
         {
             int locationID = GL.GetAttribLocation(ProgramID, attributeName);
-            // if (locationID == -1)
-            //     throw new Exception($"Could not get attribute {attributeName}");
             int bufferID = GL.GenBuffer();
             attributeList[attributeName] = (locationID, bufferID);
         }
 
+        [Obsolete("This method is no longer maintained. Use SetUniformT")]
         public void SetUniform<T>(string uniformName, T value, int? index = null) where T : notnull
         {
             if (!uniformList.TryGetValue(uniformName, out var uniformLocation))
@@ -116,6 +113,21 @@ namespace VoxelGame.Visual
                 throw new Exception($"Unsupported uniform type {typeof(T)} for {uniformName}");
         }
 
+        public void SetUniformT<T>(string uniformName, T value, int? index = null) where T : notnull
+        {
+            if (!uniformList.TryGetValue(uniformName, out var uniformLocation))
+            {
+                Console.WriteLine($"No uniform found for {uniformName}.\n\tAttempting To Create Uniform...");
+                InitUniform(uniformName);
+                if (!uniformList.TryGetValue(uniformName, out var attempedUniformLocation))
+                {
+                    throw new Exception($"Could not create Uniform {uniformName}");
+                }
+                uniformLocation = attempedUniformLocation;
+            }
+            Util.OpenTK.ShaderUniformSet(uniformLocation, uniformName, value);
+        }
+
         public void Bind()
         {
             GL.UseProgram(ProgramID);
@@ -131,7 +143,7 @@ namespace VoxelGame.Visual
             drawingMode = mode;
         }
 
-        public void SetBufferData<T, T2>(string attributeName, T[] data, int size, int stride = 0, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct where T2 : struct
+        public void BufferData<T, T2>(string attributeName, T[] data, int size, int stride = 0, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct where T2 : struct
         {
             if (!attributeList.TryGetValue(attributeName, out var attributeData))
             {
@@ -144,6 +156,17 @@ namespace VoxelGame.Visual
             GL.BufferData(BufferTarget.ArrayBuffer, data.Length * TSize * T2Size, data, hint);
             GL.VertexAttribPointer(attributeData.Location, size, type, false, stride * T2Size, 0);
             GL.EnableVertexAttribArray(attributeData.Location);
+        }
+
+        public void BufferSubData<T,T2>(string attributeName, T[] data, int size, int offset = 0) where T : struct where T2 : struct
+        {
+            if (!attributeList.TryGetValue(attributeName, out var attributeData))
+            {
+                throw new Exception($"No attribute found for {attributeName}.");
+            }
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, attributeData.ID);
+            GL.BufferSubData(BufferTarget.ArrayBuffer, offset, size, data);
         }
 
         public void DrawArrays(int vertexCount)
