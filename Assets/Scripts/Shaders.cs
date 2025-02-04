@@ -16,7 +16,7 @@ namespace VoxelGame.Visual
 
         private PrimitiveType drawingMode = PrimitiveType.Triangles;
 
-        private readonly Dictionary<string, (int Location, int Buf)> attributeList = new();
+        private readonly Dictionary<string, (int Location, int ID)> attributeList = new();
         private readonly Dictionary<string, int> uniformList = new();
 
         public void Dispose()
@@ -65,7 +65,7 @@ namespace VoxelGame.Visual
             int locationID = GL.GetAttribLocation(ProgramID, attributeName);
             // if (locationID == -1)
             //     throw new Exception($"Could not get attribute {attributeName}");
-            GL.GenBuffers(1, out int bufferID);
+            int bufferID = GL.GenBuffer();
             attributeList[attributeName] = (locationID, bufferID);
         }
 
@@ -73,7 +73,13 @@ namespace VoxelGame.Visual
         {
             if (!uniformList.TryGetValue(uniformName, out var uniformLocation))
             {
-                throw new Exception($"No uniform found for {uniformName}.");
+                Console.WriteLine($"No uniform found for {uniformName}.\n\tAttempting To Create Uniform...");
+                InitUniform(uniformName);
+                if (!uniformList.TryGetValue(uniformName, out var attempedUniformLocation))
+                {
+                    throw new Exception($"Could not create Uniform {uniformName}");
+                }
+                uniformLocation = attempedUniformLocation;
             }
 
             if (typeof(T) == typeof(Vector2))
@@ -125,17 +131,18 @@ namespace VoxelGame.Visual
             drawingMode = mode;
         }
 
-        public void SetBufferData<T>(string attributeName, T[] data, int size, int stride = 0, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct
+        public void SetBufferData<T, T2>(string attributeName, T[] data, int size, int stride = 0, VertexAttribPointerType type = VertexAttribPointerType.Float, BufferUsageHint hint = BufferUsageHint.StaticDraw) where T : struct where T2 : struct
         {
             if (!attributeList.TryGetValue(attributeName, out var attributeData))
             {
                 throw new Exception($"No attribute found for {attributeName}.");
             }
-            int typeSize = Marshal.SizeOf<T>();
+            int TSize = Marshal.SizeOf<T>() <= 0 ? 1 : Marshal.SizeOf<T>();
+            int T2Size = Marshal.SizeOf<T2>() <= 0 ? 1 : Marshal.SizeOf<T2>();
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, attributeData.Buf);
-            GL.BufferData(BufferTarget.ArrayBuffer, typeSize * data.Length * sizeof(float), data, hint);
-            GL.VertexAttribPointer(attributeData.Location, size, type, false, stride * typeSize, 0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, attributeData.ID);
+            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * TSize * T2Size, data, hint);
+            GL.VertexAttribPointer(attributeData.Location, size, type, false, stride * T2Size, 0);
             GL.EnableVertexAttribArray(attributeData.Location);
         }
 

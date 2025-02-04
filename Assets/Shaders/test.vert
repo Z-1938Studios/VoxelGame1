@@ -13,5 +13,5 @@ void main()
 {
     //color = vec4(vColor,1.0);
     gl_Position = vec4(vPosition, 1.0) * modelView * cameraView * cameraProjection;
-    color = normalize(mod(gl_Position, 3));
+    color = vec4(normalize(mod(gl_Position, 12)).xyz, 1.);
 }

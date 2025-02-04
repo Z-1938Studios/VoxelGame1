@@ -6,7 +6,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace VoxelGame
 {
-    public class Game(int width, int height, string title, GameWindowSettings gameWindowSettings) : GameWindow(gameWindowSettings, new NativeWindowSettings() { ClientSize = (width, height), Title = title })
+    public class Game(int width, int height, string title, GameWindowSettings gameWindowSettings) : GameWindow(gameWindowSettings, new NativeWindowSettings() { ClientSize = (width, height), Title = title, TransparentFramebuffer = true })
     {
         bool firstMove = true;
         Matrix4 projection;
@@ -21,7 +21,7 @@ namespace VoxelGame
             (1,1,1),
             (-1,1,1),
             (-1,-1,1),
-            
+
             (1,1,-1),
             (-1,1,-1),
             (-1,-1,-1),
@@ -45,6 +45,8 @@ namespace VoxelGame
         {
             world.Pregenerate();
         }
+
+        List<Vector3> vdata = new();
         Thread worldGenerationThread = new(new ThreadStart(WorldFunction));
         protected override void OnLoad()
         {
@@ -53,12 +55,19 @@ namespace VoxelGame
             worldGenerationThread.Start();
             camera.SetProjection(45.0f, (float)width / height);
 
+            vdata.AddRange(World.Meshing.BlockFaces.FORWARD);
+            vdata.AddRange(World.Meshing.BlockFaces.BACK);
+            vdata.AddRange(World.Meshing.BlockFaces.LEFT);
+            vdata.AddRange(World.Meshing.BlockFaces.RIGHT);
+            vdata.AddRange(World.Meshing.BlockFaces.TOP);
+            vdata.AddRange(World.Meshing.BlockFaces.BOTTOM);
+
             testShader.InitProgram("test.vert", "test.frag");
 
             testShader.InitAttribute("vPosition");
             testShader.InitAttribute("vColor");
-            testShader.SetBufferData<Vector3>("vPosition", vertdata, 3);
-            testShader.SetBufferData<Vector3>("vColor", coldata, 3);
+            testShader.SetBufferData<Vector3, float>("vPosition", [.. vdata], 3, stride: 3);
+            testShader.SetBufferData<Vector3, float>("vColor", coldata, 3, stride: 3);
 
             testShader.InitUniform("modelView");
             testShader.InitUniform("cameraView");
@@ -69,13 +78,15 @@ namespace VoxelGame
 
             GL.PointSize(5.0f);
             GL.LineWidth(5.0f);
-            //GL.CullFace(TriangleFace.Front);
 
-            GL.Enable(EnableCap.DepthTest | EnableCap.CullFace | EnableCap.ProgramPointSize | EnableCap.Blend);
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.Enable(EnableCap.ProgramPointSize);
+            GL.Enable(EnableCap.Blend);
             GL.DepthFunc(DepthFunction.Less);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            GL.ClearColor(0, 0, 0, 1);
+            GL.ClearColor(0, 0, 0, 0);
 
             CursorState = CursorState.Grabbed;
         }
@@ -88,10 +99,10 @@ namespace VoxelGame
 
             //testShader.Bind();
             testShader.SetUniform<Matrix4>("cameraView", camera.GetViewMatrix());
-            testShader.DrawArrays(vertdata.Length);
+            testShader.DrawArrays(vdata.Count);
             //testShader.Unbind();
 
-            GL.Flush();
+            //GL.Flush();
             SwapBuffers();
         }
 
@@ -144,37 +155,42 @@ namespace VoxelGame
                 camera.Down((float)args.Time);
             }
 
-            if(input.IsKeyPressed(Keys.D1))
+            if (input.IsKeyPressed(Keys.D1))
             {
                 testShader.SetDrawingMode(PrimitiveType.Triangles);
             }
 
-            if(input.IsKeyPressed(Keys.D2))
+            if (input.IsKeyPressed(Keys.D2))
             {
-                testShader.SetDrawingMode(PrimitiveType.LineLoop);
+                testShader.SetDrawingMode(PrimitiveType.Lines);
             }
 
-            if(input.IsKeyPressed(Keys.D3))
+            if (input.IsKeyPressed(Keys.D3))
             {
                 testShader.SetDrawingMode(PrimitiveType.Points);
+            }
+
+            if (input.IsKeyPressed(Keys.D4))
+            {
+                testShader.SetDrawingMode(PrimitiveType.LineLoop);
             }
         }
 
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
             base.OnMouseMove(e);
-                if (firstMove)
-                {
-                    camera.UpdateLastPos(new(e.X, e.Y));
-                    firstMove = false;
-                }
-                else
-                {
-                    Vector2 currentPos = new(e.X, e.Y);
-                    camera.UpdateRotation(currentPos);
-                }
-                camera.Rotate();
-            
+            if (firstMove)
+            {
+                camera.UpdateLastPos(new(e.X, e.Y));
+                firstMove = false;
+            }
+            else
+            {
+                Vector2 currentPos = new(e.X, e.Y);
+                camera.UpdateRotation(currentPos);
+            }
+            camera.Rotate();
+
         }
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
