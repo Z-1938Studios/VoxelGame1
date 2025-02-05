@@ -55,4 +55,4 @@ Assets/
 
 ## License
 This project is licensed under the MIT License.
-
+See the [License File](LICENSE) for further details.
