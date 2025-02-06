@@ -11,9 +11,9 @@ namespace VoxelGame.World.Meshing
         {
             targetShader = s;
         }
-        public void GetChunkMesh(Chunk c, Dictionary<Vector3i, Chunk> chunkList)
+        public void GetChunkMesh(Chunk c)
         {
-
+            
         }
     }
 

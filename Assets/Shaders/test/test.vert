@@ -1,4 +1,4 @@
-#version 330
+#version 330 core
 
 in vec3 vPosition;
 in vec3 vColor;
@@ -11,7 +11,6 @@ out vec4 color;
 
 void main()
 {
-    //color = vec4(vColor,1.0);
     gl_Position = vec4(vPosition, 1.0) * modelView * cameraView * cameraProjection;
-    color = vec4(normalize(mod(gl_Position, 12)).xyz, 1.);
+    color = vec4(normalize(mod(gl_Position, 12)).xyzw);
 }
