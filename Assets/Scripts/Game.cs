@@ -96,16 +96,14 @@ namespace VoxelGame
             testShader.InitUniform("modelView");
             testShader.InitUniform("cameraView");
             testShader.InitUniform("cameraProjection");
-            testShader.InitUniform("bitDepth");
             testShader.Bind();
             testShader.SetUniformT<Matrix4>("modelView", mviewdata[0]);
             testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.SetUniformT<Matrix4>("cameraProjection", camera.GetProjectionMatrix());
-            testShader.SetUniformT<float>("bitDepth", 256);
 
             screenShader.InitProgram("screenShader/vert.glsl", "screenShader/frag.glsl");
-            screenShader.InitAttribute("vColor");
-            screenShader.BufferData<Vector3, float>("vColor", [(1, 0, 0), (0, 1, 0), (0, 0, 1)], 3, stride: 3);
+            screenShader.InitUniform("bitDepth");
+            screenShader.SetUniformT<float>("bitDepth", 256);
 
             GL.PointSize(5.0f);
             GL.LineWidth(5.0f);
@@ -139,7 +137,7 @@ namespace VoxelGame
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
-            screenShader.DrawArrays(3);
+            screenShader.DrawArrays(6);
             //testShader.Unbind();
 
             //GL.Flush();
@@ -174,16 +172,16 @@ namespace VoxelGame
             if (input.IsKeyPressed(Keys.D3)) testShader.SetDrawingMode(PrimitiveType.Points);
             if (input.IsKeyPressed(Keys.D4)) testShader.SetDrawingMode(PrimitiveType.LineLoop);
 
-            if (input.IsKeyPressed(Keys.KeyPad0)) testShader.SetUniformT<float>("bitDepth", 1);
-            if (input.IsKeyPressed(Keys.KeyPad1)) testShader.SetUniformT<float>("bitDepth", 2);
-            if (input.IsKeyPressed(Keys.KeyPad2)) testShader.SetUniformT<float>("bitDepth", 4);
-            if (input.IsKeyPressed(Keys.KeyPad3)) testShader.SetUniformT<float>("bitDepth", 8);
-            if (input.IsKeyPressed(Keys.KeyPad4)) testShader.SetUniformT<float>("bitDepth", 16);
-            if (input.IsKeyPressed(Keys.KeyPad5)) testShader.SetUniformT<float>("bitDepth", 32);
-            if (input.IsKeyPressed(Keys.KeyPad6)) testShader.SetUniformT<float>("bitDepth", 64);
-            if (input.IsKeyPressed(Keys.KeyPad7)) testShader.SetUniformT<float>("bitDepth", 128);
-            if (input.IsKeyPressed(Keys.KeyPad8)) testShader.SetUniformT<float>("bitDepth", 256);
-            if (input.IsKeyPressed(Keys.KeyPad9)) testShader.SetUniformT<float>("bitDepth", 24);
+            if (input.IsKeyPressed(Keys.KeyPad0)) screenShader.SetUniformT<float>("bitDepth", 1);
+            if (input.IsKeyPressed(Keys.KeyPad1)) screenShader.SetUniformT<float>("bitDepth", 2);
+            if (input.IsKeyPressed(Keys.KeyPad2)) screenShader.SetUniformT<float>("bitDepth", 4);
+            if (input.IsKeyPressed(Keys.KeyPad3)) screenShader.SetUniformT<float>("bitDepth", 8);
+            if (input.IsKeyPressed(Keys.KeyPad4)) screenShader.SetUniformT<float>("bitDepth", 16);
+            if (input.IsKeyPressed(Keys.KeyPad5)) screenShader.SetUniformT<float>("bitDepth", 32);
+            if (input.IsKeyPressed(Keys.KeyPad6)) screenShader.SetUniformT<float>("bitDepth", 64);
+            if (input.IsKeyPressed(Keys.KeyPad7)) screenShader.SetUniformT<float>("bitDepth", 128);
+            if (input.IsKeyPressed(Keys.KeyPad8)) screenShader.SetUniformT<float>("bitDepth", 256);
+            if (input.IsKeyPressed(Keys.KeyPad9)) screenShader.SetUniformT<float>("bitDepth", 24);
         }
 
         protected override void OnMouseMove(MouseMoveEventArgs e)
