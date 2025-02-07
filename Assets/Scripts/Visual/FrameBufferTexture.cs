@@ -2,11 +2,11 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace VoxelGame.Visual
 {
-    public class FrameBufferTexture
+    public abstract class FrameBufferTexture
     {
-        public int FBO { get; private set; }
-        public int TEX { get; private set; }
-        public int DEPTHBUFFER { get; private set; }
+        public virtual int FBO { get; private set; }
+        public virtual int TEX { get; private set; }
+        public virtual int DEPTHBUFFER { get; private set; }
         public FrameBufferTexture(int width, int height)
         {
             FBO = GL.GenFramebuffer();
@@ -31,22 +31,22 @@ namespace VoxelGame.Visual
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
-        public void Bind()
+        public virtual void Bind()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, FBO);
         }
 
-        public void Unbind()
+        public virtual void Unbind()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
-        public void BindTex()
+        public virtual void BindTex()
         {
             GL.BindTexture(TextureTarget.Texture2D, TEX);
         }
 
-        public void SetDimensions(int width, int height)
+        public virtual void SetDimensions(int width, int height)
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, FBO);
 

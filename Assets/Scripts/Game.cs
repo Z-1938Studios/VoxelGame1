@@ -24,10 +24,11 @@ namespace VoxelGame
     }
     public class Game(int width, int height, string title, GameWindowSettings gameWindowSettings) : GameWindow(gameWindowSettings, GameConstants.DEFAULT_SETTINGS(width, height, title))
     {
-        bool firstMove = true;
-        Visual.Shader testShader = new();
-        Visual.Shader screenShader = new();
-        Visual.Camera camera = new();
+        bool FIRST_MOVE = true;
+        readonly Vector4 CLEAR_COLOR = (0,0,0,0);
+        readonly Shader testShader = new();
+        readonly Shader screenShader = new();
+        readonly Camera camera = new();
         Vector3[] coldata = new Vector3[] {
             new Vector3(1f, 0f, 0f),
             new Vector3( 0f, 0f, 1f),
@@ -47,9 +48,7 @@ namespace VoxelGame
 
         List<Vector3> vdata = new();
         Thread worldGenerationThread = new(new ThreadStart(WorldFunction));
-
-        // int __FBO, __FBTEX, __DEPTHBUF;
-        FrameBufferTexture frameBufferTexture;
+        FBTexture frameBufferTexture;
         protected override void OnLoad()
         {
             base.OnLoad();
@@ -57,31 +56,8 @@ namespace VoxelGame
             // worldGenerationThread.Start();
             camera.SetProjection(45.0f, (float)width / height);
 
-            #region FrameBuffer Test
-
-            // __FBO = GL.GenFramebuffer();
-            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
-
-            // __FBTEX = GL.GenTexture();
-            // GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
-            // GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
-            // GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            // GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
-
-            // GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, __FBTEX, 0);
-
-            // __DEPTHBUF = GL.GenRenderbuffer();
-            // GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, __DEPTHBUF);
-            // GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent24, width, height);
-            // GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, __DEPTHBUF);
-
-            // FramebufferErrorCode _s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-            // if(_s!=FramebufferErrorCode.FramebufferComplete) throw new Exception($"Frame Buffer Error : {_s}");
-
-            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            #endregion
-
-            frameBufferTexture = new FrameBufferTexture(width, height);
+            frameBufferTexture = new FBTexture(width, height, (0,0,0,1), CLEAR_COLOR);
+            frameBufferTexture.BindTex();
 
             vdata.AddRange(World.Meshing.BlockFaces.FORWARD);
             vdata.AddRange(World.Meshing.BlockFaces.BACK);
@@ -105,7 +81,7 @@ namespace VoxelGame
             testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.SetUniformT<Matrix4>("cameraProjection", camera.GetProjectionMatrix());
 
-            screenShader.InitProgram("screenShader/vert.glsl", "screenShader/frag.glsl");
+            screenShader.InitProgram("screenShader/vert.glsl", "screenShader/fragOutline.glsl");
             screenShader.InitUniform("bitDepth");
             screenShader.SetUniformT<float>("bitDepth", 256);
 
@@ -121,7 +97,7 @@ namespace VoxelGame
             GL.DepthFunc(DepthFunction.Less);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            GL.ClearColor(0, 0, 0, 0);
+            GL.ClearColor(CLEAR_COLOR.X, CLEAR_COLOR.Y, CLEAR_COLOR.Z, CLEAR_COLOR.W);
 
             CursorState = CursorState.Grabbed;
 
@@ -130,7 +106,6 @@ namespace VoxelGame
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
-            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
             frameBufferTexture.Bind();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -139,15 +114,12 @@ namespace VoxelGame
             testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.DrawArrays(vdata.Count);
 
-            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             frameBufferTexture.Unbind();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            // GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
             frameBufferTexture.BindTex();
             screenShader.DrawArrays(6);
-            //testShader.Unbind();
 
-            //GL.Flush();
+            GL.Flush();
             SwapBuffers();
         }
 
@@ -194,10 +166,10 @@ namespace VoxelGame
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
             base.OnMouseMove(e);
-            if (firstMove)
+            if (FIRST_MOVE)
             {
                 camera.UpdateLastPos(new(e.X, e.Y));
-                firstMove = false;
+                FIRST_MOVE = false;
             }
             else
             {

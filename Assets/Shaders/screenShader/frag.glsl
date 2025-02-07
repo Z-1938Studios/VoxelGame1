@@ -8,7 +8,7 @@ uniform float bitDepth;
 
 void main()
 {
-    vec4 tex = texture(texture0, texCoord);
+    vec4 tex = vec4(texture(texture0, texCoord).xyzw);
     vec4 posturized = floor(tex.rgba * bitDepth) / bitDepth;
     outputColor = posturized;
 }
