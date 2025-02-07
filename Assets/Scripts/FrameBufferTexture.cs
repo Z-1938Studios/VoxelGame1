@@ -31,20 +31,18 @@ namespace VoxelGame.Visual
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
-        public void Capture()
+        public void Bind()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, FBO);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         }
 
-        public void StopCapture()
+        public void Unbind()
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
-        public void Bind()
+        public void BindTex()
         {
-            // GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.BindTexture(TextureTarget.Texture2D, TEX);
         }
 

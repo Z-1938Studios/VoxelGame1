@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using VoxelGame.Visual;
 
 namespace VoxelGame
 {
@@ -14,7 +15,7 @@ namespace VoxelGame
             {
                 ClientSize = (width, height),
                 Title = title,
-                TransparentFramebuffer = false,
+                TransparentFramebuffer = true,
                 API = ContextAPI.OpenGL,
                 APIVersion = new Version(3, 3),
                 Profile = ContextProfile.Core
@@ -47,7 +48,8 @@ namespace VoxelGame
         List<Vector3> vdata = new();
         Thread worldGenerationThread = new(new ThreadStart(WorldFunction));
 
-        int __FBO, __FBTEX, __DEPTHBUF;
+        // int __FBO, __FBTEX, __DEPTHBUF;
+        FrameBufferTexture frameBufferTexture;
         protected override void OnLoad()
         {
             base.OnLoad();
@@ -57,27 +59,29 @@ namespace VoxelGame
 
             #region FrameBuffer Test
 
-            __FBO = GL.GenFramebuffer();
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
+            // __FBO = GL.GenFramebuffer();
+            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
 
-            __FBTEX = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
+            // __FBTEX = GL.GenTexture();
+            // GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
+            // GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+            // GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            // GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
 
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, __FBTEX, 0);
+            // GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, __FBTEX, 0);
 
-            __DEPTHBUF = GL.GenRenderbuffer();
-            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, __DEPTHBUF);
-            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent24, width, height);
-            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, __DEPTHBUF);
+            // __DEPTHBUF = GL.GenRenderbuffer();
+            // GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, __DEPTHBUF);
+            // GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent24, width, height);
+            // GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, __DEPTHBUF);
 
-            FramebufferErrorCode _s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-            if(_s!=FramebufferErrorCode.FramebufferComplete) throw new Exception($"Frame Buffer Error : {_s}");
+            // FramebufferErrorCode _s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+            // if(_s!=FramebufferErrorCode.FramebufferComplete) throw new Exception($"Frame Buffer Error : {_s}");
 
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             #endregion
+
+            frameBufferTexture = new FrameBufferTexture(width, height);
 
             vdata.AddRange(World.Meshing.BlockFaces.FORWARD);
             vdata.AddRange(World.Meshing.BlockFaces.BACK);
@@ -117,7 +121,7 @@ namespace VoxelGame
             GL.DepthFunc(DepthFunction.Less);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            GL.ClearColor(0, 0, 0, 1);
+            GL.ClearColor(0, 0, 0, 0);
 
             CursorState = CursorState.Grabbed;
 
@@ -126,7 +130,8 @@ namespace VoxelGame
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
+            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, __FBO);
+            frameBufferTexture.Bind();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //testShader.Bind();
@@ -134,9 +139,11 @@ namespace VoxelGame
             testShader.SetUniformT<Matrix4>("cameraView", camera.GetViewMatrix());
             testShader.DrawArrays(vdata.Count);
 
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            // GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            frameBufferTexture.Unbind();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
+            // GL.BindTexture(TextureTarget.Texture2D, __FBTEX);
+            frameBufferTexture.BindTex();
             screenShader.DrawArrays(6);
             //testShader.Unbind();
 
